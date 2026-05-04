@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS productos (
     descripcion TEXT NOT NULL,
     precio DECIMAL(10, 2) NOT NULL,
     -- Estados de un producto
-    estado ENUM('nuevo', 'como nuevo', 'buen estado', 'aceptable',) NOT NULL,
+    estado ENUM('nuevo', 'como nuevo', 'buen estado', 'aceptable', 'para piezas o reparar') NOT NULL,
     fecha_publicacion DATETIME DEFAULT CURRENT_TIMESTAMP,
     n_visualizaciones INT DEFAULT 0,
     envio_disponible BOOLEAN DEFAULT FALSE,

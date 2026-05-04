@@ -1,0 +1,96 @@
+const db = require('../config/db');
+
+const productController = {
+    // Obtener productos con filtros (Requisito de búsqueda y consulta)
+    getAllProducts: async (req, res) => {
+        try {
+            // Recogemos los parámetros de búsqueda de la URL (query strings)
+            const { categoria, busqueda, estado, precioMax } = req.query;
+            
+            // Consulta base con JOIN para obtener nombres de categoría y vendedor
+            let sql = `
+                SELECT p.*, c.nombre AS categoria_nombre, u.nombre AS vendedor_nombre 
+                FROM productos p
+                LEFT JOIN categorias c ON p.categoria_id = c.id
+                LEFT JOIN usuarios u ON p.vendedor_id = u.id
+                WHERE 1=1
+            `;
+            const params = [];
+
+            // Filtro por descripción o título
+            if (busqueda) {
+                sql += ` AND (p.titulo LIKE ? OR p.descripcion LIKE ?)`;
+                params.push(`%${busqueda}%`, `%${busqueda}%`);
+            }
+
+            // Filtro por categoría[cite: 4]
+            if (categoria) {
+                sql += ` AND p.categoria_id = ?`;
+                params.push(categoria);
+            }
+
+            // Filtro por estado (siguiendo los valores ENUM oficiales)[cite: 4]
+            if (estado) {
+                sql += ` AND p.estado = ?`;
+                params.push(estado);
+            }
+
+            // Filtro por precio máximo[cite: 4]
+            if (precioMax) {
+                sql += ` AND p.precio <= ?`;
+                params.push(precioMax);
+            }
+
+            // Ordenar por los más recientes primero
+            sql += ` ORDER BY p.fecha_publicacion DESC`;
+
+            const [productos] = await db.execute(sql, params);
+            
+            res.json({ success: true, data: productos });
+        } catch (error) {
+            console.error("Error al obtener productos:", error);
+            res.status(500).json({ success: false, message: 'Error al procesar la búsqueda' });
+        }
+    },
+
+    // Dar de alta un nuevo producto (Lo que ya tenías hecho)[cite: 4]
+    createProduct: async (req, res) => {
+        const { titulo, descripcion, precio, estado, lugar_recogida, categoria_id, envio_disponible } = req.body;
+        
+        // Seguridad: el vendedor siempre es el usuario de la sesión[cite: 4]
+        const vendedor_id = req.session.user.id;
+
+        try {
+            const query = `
+                INSERT INTO productos 
+                (titulo, descripcion, precio, estado, lugar_recogida, categoria_id, envio_disponible, vendedor_id) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            `;
+            
+            const [result] = await db.execute(query, [
+                titulo, 
+                descripcion, 
+                precio, 
+                estado, 
+                lugar_recogida, 
+                categoria_id, 
+                envio_disponible || false, 
+                vendedor_id
+            ]);
+
+            res.status(201).json({ 
+                success: true, 
+                message: 'Producto dado de alta con éxito', 
+                id: result.insertId 
+            });
+        } catch (error) {
+            console.error("Error al dar de alta el producto:", error);
+            res.status(500).json({ 
+                success: false, 
+                message: 'Error interno del servidor al crear el producto' 
+            });
+        }
+    }
+};
+
+module.exports = productController;

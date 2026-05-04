@@ -1,0 +1,6 @@
+/* Demostración de CSS Grid exigida en la evaluación */
+.producto-grid-card .card-body {
+    display: grid;
+    grid-template-rows: auto auto 1fr; /* Título, Precio, Descripción (ocupa el resto) */
+    gap: 10px;
+}
